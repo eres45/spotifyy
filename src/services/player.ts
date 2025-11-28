@@ -1,109 +1,78 @@
-import axios from '../axios';
+import { invidiousPlayerService } from './invidiousPlayer';
 import type { Pagination } from '../interfaces/api';
 import { Device } from '../interfaces/devices';
 import type { PlayHistoryObject } from '../interfaces/player';
 
-/**
- * @description Get information about the user’s current playback state, including track or episode, progress, and active device.
- */
-const fetchPlaybackState = async () => {
-  const response = await axios.get('/me/player');
-  return response.data;
-};
+export { invidiousPlayerService };
 
 /**
- *
- * @description Transfer playback to a new device and optionally begin playback. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
- * @param deviceId The ID of the device this command is targeting. If not supplied, the user’s currently active device is the target.
+ * @description Get information about the user's current playback state, including track or episode, progress, and active device.
  */
-const transferPlayback = async (deviceId: string) => {
-  await axios.put('/me/player', { device_ids: [deviceId] });
-};
+const fetchPlaybackState = invidiousPlayerService.fetchPlaybackState;
 
 /**
- * @description Get information about a user’s available Spotify Connect devices. Some device models are not supported and will not be listed in the API response.
+ * @description Transfer playback to a new device and optionally begin playback.
+ * @param deviceId The ID of the device this command is targeting. If not supplied, the user's currently active device is the target.
  */
-const getAvailableDevices = async () => {
-  const response = await axios.get<{ devices: Device[] }>('/me/player/devices');
-  return response.data;
-};
+const transferPlayback = invidiousPlayerService.transferPlayback;
 
 /**
- * @description Start a new context or resume current playback on the user's active device. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Get information about a user's available devices.
  */
-const startPlayback = async (
-  body: { context_uri?: string; uris?: string[]; offset?: { position: number } } = {}
-) => {
-  await axios.put('/me/player/play', body);
-};
+const getAvailableDevices = invidiousPlayerService.getAvailableDevices;
 
 /**
- * @description Pause playback on the user's account. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Start a new context or resume current playback on the user's active device.
  */
-const pausePlayback = async () => {
-  await axios.put('/me/player/pause');
-};
+const startPlayback = invidiousPlayerService.startPlayback;
 
 /**
- * @description Skip to the next track in the user’s queue. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Pause playback on the user's account.
  */
-const nextTrack = async () => {
-  await axios.post('/me/player/next');
-};
+const pausePlayback = invidiousPlayerService.pausePlayback;
 
 /**
- * @description Skip to the previous track in the user’s queue. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Skip to the next track in the user's queue.
  */
-const previousTrack = async () => {
-  await axios.post('/me/player/previous');
-};
+const nextTrack = invidiousPlayerService.nextTrack;
 
 /**
- * @description Seeks to the given position in the user’s currently playing track. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Skip to the previous track in the user's queue.
  */
-const seekToPosition = async (position_ms: number) => {
-  await axios.put('/me/player/seek', {}, { params: { position_ms } });
-};
+const previousTrack = invidiousPlayerService.previousTrack;
 
 /**
- * @description Set the repeat mode for the user's playback. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Seeks to the given position in the user's currently playing track.
+ * @param position_ms The position in milliseconds to seek to.
+ */
+const seekToPosition = invidiousPlayerService.seekToPosition;
+
+/**
+ * @description Set the repeat mode for the user's playback.
  * @param state track, context, or off. track will repeat the current track. context will repeat the current context. off will turn repeat off.
  */
-const setRepeatMode = async (state: 'track' | 'context' | 'off') => {
-  await axios.put('/me/player/repeat', {}, { params: { state } });
-};
+const setRepeatMode = invidiousPlayerService.setRepeatMode;
 
 /**
- * @description Set the volume for the user’s current playback device. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Set the volume for the user's current playback device.
  * @param volume_percent The volume to set. Must be a value from 0 to 100 inclusive.
  */
-const setVolume = async (volume_percent: number) => {
-  await axios.put('/me/player/volume', {}, { params: { volume_percent } });
-};
+const setVolume = invidiousPlayerService.setVolume;
 
 /**
- * @description Toggle shuffle on or off for user’s playback. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Toggle shuffle on or off for user's playback.
  */
-const toggleShuffle = async (state: boolean) => {
-  await axios.put('/me/player/shuffle', {}, { params: { state } });
-};
+const toggleShuffle = invidiousPlayerService.toggleShuffle;
 
 /**
- * @description Add an item to the end of the user's current playback queue. This API only works for users who have Spotify Premium. The order of execution is not guaranteed when you use this API with other Player API endpoints.
+ * @description Add an item to the end of the user's current playback queue.
  */
-const addToQueue = async (uri: string) => {
-  await axios.post('/me/player/queue', {}, { params: { uri } });
-};
+const addToQueue = invidiousPlayerService.addToQueue;
 
 /**
- * @description Get tracks from the current user's recently played tracks. Note: Currently doesn't support podcast episodes.
+ * @description Get tracks from the current user's recently played tracks.
  */
-const getRecentlyPlayed = async (params: { limit?: number; after?: number; before?: number }) => {
-  const response = await axios.get<Pagination<PlayHistoryObject>>('/me/player/recently-played', {
-    params,
-  });
-  return response.data;
-};
+const getRecentlyPlayed = invidiousPlayerService.getRecentlyPlayed;
 
 export const playerService = {
   addToQueue,

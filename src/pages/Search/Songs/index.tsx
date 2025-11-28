@@ -22,7 +22,7 @@ export const SearchSongsPage: FC<SearchPageProps> = memo((props) => {
   const songs = useAppSelector((state) => state.search.songs);
 
   useEffect(() => {
-    dispatch(searchActions.setSection('TRACKS'));
+    dispatch(searchActions.setSection({ section: 'TRACKS' }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export const SearchSongsPage: FC<SearchPageProps> = memo((props) => {
     return <NoSearchResults searchValue={params.search || ''} />;
   }
 
-  return <SearchSongsPageContainer {...props} query={params.search!} />;
+  return <SearchSongsPageContainer query={params.search!} {...props} />;
 });
 
 export default SearchSongsPage;

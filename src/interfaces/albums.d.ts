@@ -47,7 +47,19 @@ export interface Album {
   uri: string;
 }
 
-interface AlbumFullObject extends Album {
+import type { Track } from './track';
+
+export interface AlbumFull extends Album {
   /** @description The tracks of the album. */
-  tracks: Track[];
+  tracks: {
+    href: string;
+    items: Track[];
+    limit: number;
+    next: string | null;
+    offset: number;
+    previous: string | null;
+    total: number;
+  };
 }
+
+export type AlbumFullObject = AlbumFull;

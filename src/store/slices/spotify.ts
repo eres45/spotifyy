@@ -51,7 +51,7 @@ export const fetchLikedSong = createAsyncThunk<boolean, string>(
   }
 );
 
-export const fetchDevices = createAsyncThunk<Device[]>('spotify/fetchDevices', async () => {
+export const fetchDevices = createAsyncThunk<Device[], void>('spotify/fetchDevices', async () => {
   const response = await playerService.getAvailableDevices();
   return response.devices;
 });

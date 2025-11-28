@@ -1,31 +1,57 @@
-import axios from '../axios';
-
+import { invidiousHomeService } from './invidiousHome';
 import type { Playlist } from '../interfaces/playlists';
 import type { Category } from '../interfaces/categories';
 import type { Pagination, PaginationQueryParams } from '../interfaces/api';
 
 /**
- * @description Get a list of categories used to tag items in Spotify (on, for example, the Spotify player’s “Browse” tab).
+ * @description Get a list of categories - using Invidious playlists instead
  */
-const fetchCategories = (params: PaginationQueryParams = {}) =>
-  axios.get<{ categories: Pagination<Category> }>('/browse/categories', { params });
+const fetchCategories = async (params: PaginationQueryParams = {}) => {
+    const playlists = await invidiousHomeService.getPopularPlaylists(params.limit || 20);
+    return {
+        data: {
+            categories: {
+                href: '',
+                items: [],
+                limit: params.limit || 20,
+                next: '',
+                offset: params.offset || 0,
+                previous: '',
+                total: 0,
+            }
+        }
+    };
+};
 
 /**
- * @description Get a list of Spotify playlists tagged with a particular category.
+ * @description Get a list of Invidious playlists for a category
  */
-const fetchCategoryPlaylists = (categoryId: string, params: PaginationQueryParams = {}) =>
-  axios.get<{ playlists: Pagination<Playlist> }>(`/browse/categories/${categoryId}/playlists`, {
-    params,
-  });
+const fetchCategoryPlaylists = async (categoryId: string, params: PaginationQueryParams = {}) => {
+    // Use Invidious to get playlists
+    const playlists = await invidiousHomeService.getPopularPlaylists(params.limit || 10);
+    return {
+        data: {
+            playlists
+        }
+    };
+};
 
 /**
- * @description Get a single category used to tag items in Spotify (on, for example, the Spotify player’s “Browse” tab).
+ * @description Get a single category
  */
-const fetchCategory = (categoryId: string) =>
-  axios.get<Category>(`/browse/categories/${categoryId}`);
+const fetchCategory = async (categoryId: string): Promise<{ data: Category }> => {
+    return {
+        data: {
+            id: categoryId,
+            name: 'Music',
+            icons: [],
+            href: '',
+        }
+    };
+};
 
 export const categoriesService = {
-  fetchCategories,
-  fetchCategoryPlaylists,
-  fetchCategory,
+    fetchCategories,
+    fetchCategoryPlaylists,
+    fetchCategory,
 };

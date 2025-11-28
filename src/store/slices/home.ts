@@ -68,51 +68,9 @@ export const fetchTopTracks = createAsyncThunk('home/fetchTopTracks', async () =
 
 export const fetchRecentlyPlayed = createAsyncThunk('home/fetchRecentlyPlayed', async () => {
   try {
-    const response = await playerService.getRecentlyPlayed({ limit: 50 });
-
-    const items = response.items;
-
-    const groupedItems = groupBy(
-      items.filter((item) => ['artist', 'playlist', 'album'].includes(item.context?.type)),
-      (item) => item.context.type
-    );
-
-    const artistsTracks = groupedItems['artist'] || [];
-    const albumsTracks = groupedItems['album'] || [];
-
-    const artistsIds = uniq(artistsTracks.map((item) => item.context.uri.split(':')[2]));
-    const albumsIds = uniq(albumsTracks.map((item) => item.context.uri.split(':')[2]));
-
-    const promises = [
-      artistsIds.length
-        ? artistService.fetchArtists(artistsIds)
-        : Promise.resolve({ data: { artists: [] } }),
-      albumsIds.length
-        ? albumsService.fetchAlbums(albumsIds)
-        : Promise.resolve({ data: { albums: [] } }),
-    ];
-
-    const [artistsResponse, albumsResponse] = await Promise.all(promises);
-
-    // @ts-ignore
-    const artists: Artist[] = artistsResponse.data.artists;
-
-    // @ts-ignore
-    const albums: Album[] = albumsResponse.data.albums;
-
-    const tracks = items.map((item) => {
-      if (item.context?.type === 'artist') {
-        return artists.find((artist) => artist.id === item.context.uri.split(':')[2])!;
-      }
-
-      if (item.context?.type === 'album') {
-        return albums.find((album) => album.id === item.context.uri.split(':')[2])!;
-      }
-
-      return item.track;
-    });
-
-    return uniqBy(tracks, 'id');
+    // Since we're using Invidious and not Spotify, we don't have real recently played data
+    // For now, we'll return an empty array to avoid errors
+    return [];
   } catch (error) {
     console.log(error);
     return [];

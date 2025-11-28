@@ -1,7 +1,7 @@
 import { FC, memo, useEffect } from 'react';
 
 import NoSearchResults from '../NoResults';
-import SearchPlaylistPageContainer from './container';
+import SearchPlaylistsPageContainer from './container';
 
 // Utils
 import { useParams } from 'react-router-dom';
@@ -14,14 +14,15 @@ interface SearchPageProps {
   container: React.RefObject<HTMLDivElement | null>;
 }
 
-export const SearchPlaylistPage: FC<SearchPageProps> = memo((props) => {
+export const SearchPlaylistsPage: FC<SearchPageProps> = memo((props) => {
   const dispatch = useAppDispatch();
   const params = useParams<{ search: string }>();
 
+  const loading = useAppSelector((state) => state.search.loading);
   const playlists = useAppSelector((state) => state.search.playlists);
 
   useEffect(() => {
-    dispatch(searchActions.setSection('PLAYLISTS'));
+    dispatch(searchActions.setSection({ section: 'PLAYLISTS' }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -30,11 +31,13 @@ export const SearchPlaylistPage: FC<SearchPageProps> = memo((props) => {
     }
   }, [dispatch, params.search]);
 
+  if (loading) return null;
+
   if (!playlists) {
     return <NoSearchResults searchValue={params.search || ''} />;
   }
 
-  return <SearchPlaylistPageContainer {...props} />;
+  return <SearchPlaylistsPageContainer {...props} />;
 });
 
-export default SearchPlaylistPage;
+export default SearchPlaylistsPage;

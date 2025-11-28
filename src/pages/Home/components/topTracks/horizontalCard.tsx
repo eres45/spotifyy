@@ -50,21 +50,21 @@ export const HorizontalCard: FC<HorizontalCardProps> = memo(({ item, setColor })
         onMouseEnter={
           !isMobile
             ? () => {
-                getImageAnalysis2(item.album.images[0].url).then((r) => {
-                  let color = tinycolor(r);
-                  while (color.isLight()) {
-                    color = color.darken(10);
-                  }
-                  setColor(color.toHexString());
-                });
-              }
+              getImageAnalysis2(item.album.images[0].url).then((r) => {
+                let color = tinycolor(r);
+                while (color.isLight()) {
+                  color = color.darken(10);
+                }
+                setColor(color.toHexString());
+              });
+            }
             : undefined
         }
       >
         <div style={{ display: 'flex' }}>
           <div className='img-container'>
             <div className='img-section'>
-              <img src={item.album.images[0].url} alt={item.name} />
+              <img src={item.album.images[0]?.url || undefined} alt={item.name} />
             </div>
           </div>
         </div>

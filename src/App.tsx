@@ -20,6 +20,7 @@ import { persistor, store, useAppDispatch, useAppSelector } from './store/store'
 
 // Spotify
 import WebPlayback, { WebPlaybackProps } from './utils/spotify/webPlayback';
+import InvidiousWebPlayback from './utils/invidious/InvidiousWebPlayback';
 
 // Pages
 import SearchContainer from './pages/Search/Container';
@@ -66,10 +67,17 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
     const tokenInLocalStorage = getFromLocalStorageWithExpiry('access_token');
     dispatch(authActions.setToken({ token: tokenInLocalStorage }));
 
-    if (tokenInLocalStorage) {
-      dispatch(authActions.fetchUser());
+    // Check if we're in demo mode (no client ID set)
+    const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+    if (!clientId || clientId === 'your_spotify_client_id_here') {
+      // In demo mode, set demo user directly
+      dispatch(authActions.setDemoMode());
     } else {
-      dispatch(loginToSpotify(true));
+      if (tokenInLocalStorage) {
+        dispatch(authActions.fetchUser());
+      } else {
+        dispatch(loginToSpotify(true));
+      }
     }
   }, [dispatch]);
 
@@ -80,12 +88,19 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
       playerRefreshRateMs: 1000,
       playerName: 'Spotify React Player',
       onPlayerRequestAccessToken: () => Promise.resolve(token!),
-      onPlayerLoading: () => {},
+      onPlayerLoading: () => { },
       onPlayerWaitingForDevice: () => {
         dispatch(authActions.setPlayerLoaded({ playerLoaded: true }));
       },
       onPlayerError: (e) => {
-        dispatch(loginToSpotify(false));
+        // Only redirect to login if not in demo mode
+        const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+        if (!clientId || clientId === 'your_spotify_client_id_here') {
+          // In demo mode, don't redirect
+          console.log('Playback error in demo mode');
+        } else {
+          dispatch(loginToSpotify(false));
+        }
       },
       onPlayerDeviceSelected: () => {
         dispatch(authActions.setPlayerLoaded({ playerLoaded: true }));
@@ -93,6 +108,15 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
     }),
     [dispatch, token]
   );
+
+  // In demo mode, we don't want to show the spinner or require authentication
+  const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+  const isDemoMode = !clientId || clientId === 'your_spotify_client_id_here';
+
+  if (isDemoMode) {
+    // In demo mode, use InvidiousWebPlayback to handle state updates
+    return <InvidiousWebPlayback>{children}</InvidiousWebPlayback>;
+  }
 
   if (!user) return <Spinner loading={requesting}>{children}</Spinner>;
 
@@ -188,12 +212,12 @@ const RoutesComponent = memo(() => {
             >
               {route?.children
                 ? route.children.map((child) => (
-                    <Route
-                      key={child.path}
-                      path={child.path}
-                      element={<Suspense>{child.element}</Suspense>}
-                    />
-                  ))
+                  <Route
+                    key={child.path}
+                    path={child.path}
+                    element={<Suspense>{child.element}</Suspense>}
+                  />
+                ))
                 : undefined}
             </Route>
           ))}
@@ -222,14 +246,18 @@ const RootComponent = () => {
       if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
         e.preventDefault();
         const request = !playing ? playerService.startPlayback() : playerService.pausePlayback();
-        request.then().catch(() => {});
+        request.then().catch(() => { });
       }
     },
     [playing]
   );
 
   useEffect(() => {
-    if (!user) return;
+    // Only add event listeners if not in demo mode
+    const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+    const isDemoMode = !clientId || clientId === 'your_spotify_client_id_here';
+
+    if (!user || isDemoMode) return;
     document.addEventListener('keydown', handleSpaceBar);
     return () => {
       document.removeEventListener('keydown', handleSpaceBar);
@@ -237,18 +265,22 @@ const RootComponent = () => {
   }, [user, handleSpaceBar]);
 
   useEffect(() => {
-    if (!user) return;
+    // Only add context menu listener if not in demo mode
+    const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+    const isDemoMode = !clientId || clientId === 'your_spotify_client_id_here';
+
+    if (!user || isDemoMode) return;
     const handleContextMenu = (e: any) => {
       e.preventDefault();
     };
     document.addEventListener('contextmenu', handleContextMenu);
     return () => {
-      document.removeEventListener('keydown', handleContextMenu);
+      document.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [user]);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppLayout>
         <RoutesComponent />
       </AppLayout>

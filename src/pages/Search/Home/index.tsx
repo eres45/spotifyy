@@ -22,7 +22,7 @@ export const SearchPage: FC<SearchPageProps> = memo((props) => {
   const loading = useAppSelector((state) => state.search.loading);
 
   useEffect(() => {
-    dispatch(searchActions.setSection('ALL'));
+    dispatch(searchActions.setSection({ section: 'ALL' }));
   }, [dispatch]);
 
   useEffect(() => {

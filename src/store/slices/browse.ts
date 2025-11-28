@@ -16,10 +16,14 @@ const initialState: {
 };
 
 export const fetchCategories = createAsyncThunk('browse/fetchCategories', async (_, api) => {
-  const user = (api.getState() as RootState).auth.user;
-  const response = await categoriesService.fetchCategories({ limit: 50 });
-  const items = response.data.categories.items;
-  return user ? items : items.filter((item) => item.id);
+  try {
+    const response = await categoriesService.fetchCategories({ limit: 50 });
+    const items = response.data.categories.items || [];
+    return items;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
 });
 
 const browseSlice = createSlice({
@@ -29,7 +33,7 @@ const browseSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(fetchCategories.fulfilled, (state, action) => {
       state.loading = false;
-      state.categories = action.payload as any as any[];
+      state.categories = action.payload;
     });
   },
 });

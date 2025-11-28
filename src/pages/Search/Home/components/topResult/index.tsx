@@ -76,12 +76,11 @@ const Card = memo(
         </div>
         <div className='playlist-card-info'>
           <h3 className='text-md font-semibold text-white'>{title}</h3>
-          <p>{description}</p>
+          <div className='text-sm text-gray-300 mt-2'>{description}</div>
         </div>
         <div
-          className={`circle-play-div transition translate-y-1/4 ${
-            isCurrent && !paused ? 'active' : ''
-          }`}
+          className={`circle-play-div transition translate-y-1/4 ${isCurrent && !paused ? 'active' : ''
+            }`}
         >
           <PlayCircle image={image} isCurrent={isCurrent} context={context} />
         </div>

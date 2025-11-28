@@ -1,237 +1,310 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 // Services
-import { userService } from '../../services/users';
 import { querySearch } from '../../services/search';
 
 // Interfaces
-import type { Album } from '../../interfaces/albums';
-import type { Artist } from '../../interfaces/artist';
-import type { Playlist } from '../../interfaces/playlists';
+import type { Pagination } from '../../interfaces/api';
 import type { Track, TrackWithSave } from '../../interfaces/track';
-import { RootState } from '../store';
-
-type Item = Playlist | Album | Track | Artist;
-
-export type SearchSection = 'ALL' | 'ARTISTS' | 'TRACKS' | 'ALBUMS' | 'PLAYLISTS';
+import type { Artist } from '../../interfaces/artist';
+import type { Album } from '../../interfaces/albums';
+import type { Playlist } from '../../interfaces/playlists';
 
 const initialState: {
-  top: Item | null;
-  songs: TrackWithSave[];
-  artists: Artist[];
-  albums: Album[];
-  playlists: Playlist[];
+  top: any | null;
   loading: boolean;
-  section: SearchSection;
+  section: 'ALL' | 'ARTISTS' | 'TRACKS' | 'ALBUMS' | 'PLAYLISTS';
+
+  songs: TrackWithSave[];
   songsTotal: number;
+  songsOffset: number;
+
+  artists: Artist[];
+  artistsTotal: number;
+  artistsOffset: number;
+
+  albums: Album[];
+  albumsTotal: number;
+  albumsOffset: number;
+
+  playlists: Playlist[];
+  playlistsTotal: number;
+  playlistsOffset: number;
 } = {
-  playlists: [],
-  songs: [],
-  artists: [],
-  albums: [],
   top: null,
-  loading: true,
+  loading: false,
   section: 'ALL',
+
+  songs: [],
   songsTotal: 0,
+  songsOffset: 0,
+
+  artists: [],
+  artistsTotal: 0,
+  artistsOffset: 0,
+
+  albums: [],
+  albumsTotal: 0,
+  albumsOffset: 0,
+
+  playlists: [],
+  playlistsTotal: 0,
+  playlistsOffset: 0,
 };
 
-const fetchArtists = createAsyncThunk<Artist[], string>('search/fetchArtists', async (query) => {
-  const response = await querySearch({ q: query, type: 'artist', limit: 50 });
-  return response.data.artists.items;
-});
-
-const fetchAlbums = createAsyncThunk<Album[], string>('search/fetchAlbums', async (query) => {
-  const response = await querySearch({ q: query, type: 'album', limit: 50 });
-  return response.data.albums.items;
-});
-
-const fetchPlaylists = createAsyncThunk<Playlist[], string>(
-  'search/fetchPlaylists',
-  async (query) => {
-    const response = await querySearch({ q: query, type: 'playlist', limit: 50 });
-    return response.data.playlists.items;
+// Search for all types of content
+export const fetchSearch = createAsyncThunk(
+  'search/fetchSearch',
+  async (query: string, { rejectWithValue }) => {
+    try {
+      const response = await querySearch({
+        q: query,
+        type: 'video,playlist,channel',
+        limit: 20,
+      });
+      
+      // For now, we'll just take the first song as top result
+      const topResult = response.tracks.items[0] || null;
+      
+      return {
+        top: topResult,
+        songs: response.tracks.items,
+        artists: response.artists.items,
+        albums: response.albums.items,
+        playlists: response.playlists.items,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   }
 );
 
-const fetchSongs = createAsyncThunk<[TrackWithSave[], number], string>(
+// Search for songs (videos)
+export const fetchSongs = createAsyncThunk(
   'search/fetchSongs',
-  async (query, params) => {
-    const response = await querySearch({ q: query, type: 'track', limit: 50 });
-    const tracks = response.data.tracks.items;
-    const total = response.data.tracks.total;
-
-    const extraRequests = [
-      userService.checkSavedTracks(tracks.map((t) => t.id)).catch(() => ({
-        data: [],
-      })),
-    ];
-
-    await Promise.all(extraRequests);
-
-    const saves = (await extraRequests[0]).data;
-
-    const items = tracks.map((track, index) => ({
-      ...track,
-      saved: saves[index],
-    }));
-
-    return [items, total];
+  async (query: string, { rejectWithValue }) => {
+    try {
+      const response = await querySearch({
+        q: query,
+        type: 'video',
+        limit: 20,
+      });
+      
+      return {
+        songs: response.tracks.items,
+        total: response.tracks.total,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   }
 );
 
-const fetchMoreSongs = createAsyncThunk<TrackWithSave[], string>(
+// Search for more songs (pagination)
+export const fetchMoreSongs = createAsyncThunk(
   'search/fetchMoreSongs',
-  async (query, { getState }) => {
-    const state = getState() as RootState;
-    const { songs } = state.search;
-
-    const response = await querySearch({
-      q: query,
-      limit: 50,
-      type: 'track',
-      offset: songs.length,
-    });
-    const tracks = response.data.tracks.items;
-
-    const extraRequests = [
-      userService.checkSavedTracks(tracks.map((t) => t.id)).catch(() => ({
-        data: [],
-      })),
-    ];
-
-    await Promise.all(extraRequests);
-
-    const saves = (await extraRequests[0]).data;
-
-    return tracks.map((track, index) => ({
-      ...track,
-      saved: saves[index],
-    }));
+  async (params: { query: string; offset: number }, { getState, rejectWithValue }: any) => {
+    try {
+      const { query, offset } = params;
+      const response = await querySearch({
+        q: query,
+        type: 'video',
+        limit: 20,
+        offset: offset,
+      });
+      
+      return {
+        songs: response.tracks.items,
+        offset,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   }
 );
 
-export const fetchSearch = createAsyncThunk<
-  [Item, [TrackWithSave[], number], Artist[], Album[], Playlist[]],
-  string
->('search/fetchSearch', async (query) => {
-  const promises = [
-    querySearch({ q: query, type: 'album,track,artist,playlist', limit: 1 }),
-    querySearch({ q: query, type: 'track', limit: 5 }),
-    querySearch({ q: query, type: 'album', limit: 10 }),
-    querySearch({ q: query, type: 'artist', limit: 10 }),
-    querySearch({ q: query, type: 'playlist', limit: 10 }),
-  ];
+// Search for artists (channels)
+export const fetchArtists = createAsyncThunk(
+  'search/fetchArtists',
+  async (query: string, { rejectWithValue }) => {
+    try {
+      const response = await querySearch({
+        q: query,
+        type: 'channel',
+        limit: 20,
+      });
+      
+      return {
+        artists: response.artists.items,
+        total: response.artists.total,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
-  const responses = await Promise.all(promises);
+// Search for albums (we'll use playlists as a substitute)
+export const fetchAlbums = createAsyncThunk(
+  'search/fetchAlbums',
+  async (query: string, { rejectWithValue }) => {
+    try {
+      // We'll search for playlists that might represent albums
+      const response = await querySearch({
+        q: query + ' album',
+        type: 'playlist',
+        limit: 20,
+      });
+      
+      return {
+        albums: response.albums.items,
+        total: response.albums.total,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
-  const topItems = [
-    responses[0].data.artists.items[0],
-    responses[0].data.albums.items[0],
-    responses[0].data.tracks.items[0],
-    responses[0].data.playlists.items[0],
-  ];
-
-  const topItem =
-    topItems.find((item) => item.name?.toLowerCase() === query?.toLowerCase()) ||
-    topItems.find((item) => item.name?.toLowerCase().includes(query?.toLowerCase())) ||
-    topItems[0];
-
-  const tracks = responses[1].data.tracks.items;
-  const tracksTotal = responses[1].data.tracks.total;
-
-  const artists = responses[3].data.artists.items;
-  const albums = responses[2].data.albums.items;
-  const playlists = responses[4].data.playlists.items;
-
-  const extraRequests = [
-    userService.checkSavedTracks(tracks.map((t) => t.id)).catch(() => ({
-      data: [],
-    })),
-  ];
-
-  await Promise.all(extraRequests);
-
-  const saves = (await extraRequests[0]).data;
-
-  const tracksWithSaves: TrackWithSave[] = tracks.map((track, index) => ({
-    ...track,
-    saved: saves[index],
-  }));
-
-  return [topItem, [tracksWithSaves, tracksTotal], artists, albums, playlists];
-});
+// Search for playlists
+export const fetchPlaylists = createAsyncThunk(
+  'search/fetchPlaylists',
+  async (query: string, { rejectWithValue }) => {
+    try {
+      const response = await querySearch({
+        q: query,
+        type: 'playlist',
+        limit: 20,
+      });
+      
+      return {
+        playlists: response.playlists.items,
+        total: response.playlists.total,
+      };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
 const searchSlice = createSlice({
   name: 'search',
   initialState,
   reducers: {
-    setSection(state, action: PayloadAction<SearchSection>) {
-      state.section = action.payload;
+    setSection(
+      state,
+      action: {
+        payload: { section: 'ALL' | 'ARTISTS' | 'TRACKS' | 'ALBUMS' | 'PLAYLISTS' };
+      }
+    ) {
+      state.section = action.payload.section;
     },
     setSavedStateForTrack(
       state,
-      action: PayloadAction<{
-        id: string;
-        saved: boolean;
-      }>
-    ) {
-      const track = state.songs.find((t) => t.id === action.payload.id);
-      if (track) {
-        track.saved = action.payload.saved;
+      action: {
+        payload: { id: string; saved: boolean };
       }
+    ) {
+      // Update the saved state for a specific track
+      const { id, saved } = action.payload;
+      state.songs = state.songs.map(song => 
+        song.id === id ? { ...song, saved } : song
+      );
     },
   },
   extraReducers: (builder) => {
+    // Fetch search
     builder.addCase(fetchSearch.pending, (state) => {
       state.loading = true;
     });
     builder.addCase(fetchSearch.fulfilled, (state, action) => {
-      state.top = action.payload[0];
-
-      state.songs = action.payload[1][0];
-      state.songsTotal = action.payload[1][1];
-
-      state.artists = action.payload[2];
-      state.albums = action.payload[3];
-      state.playlists = action.payload[4];
       state.loading = false;
+      state.top = action.payload.top;
+      state.songs = action.payload.songs;
+      state.artists = action.payload.artists;
+      state.albums = action.payload.albums;
+      state.playlists = action.payload.playlists;
+      state.songsTotal = action.payload.songs.length;
+      state.artistsTotal = action.payload.artists.length;
+      state.albumsTotal = action.payload.albums.length;
+      state.playlistsTotal = action.payload.playlists.length;
     });
     builder.addCase(fetchSearch.rejected, (state) => {
       state.loading = false;
-      state.loading = false;
     });
-    builder.addCase(fetchArtists.fulfilled, (state, action) => {
-      state.artists = action.payload;
-      state.loading = false;
-    });
-    builder.addCase(fetchAlbums.fulfilled, (state, action) => {
-      state.albums = action.payload;
-      state.loading = false;
-    });
-    builder.addCase(fetchPlaylists.fulfilled, (state, action) => {
-      state.playlists = action.payload;
-      state.loading = false;
+
+    // Fetch songs
+    builder.addCase(fetchSongs.pending, (state) => {
+      state.loading = true;
     });
     builder.addCase(fetchSongs.fulfilled, (state, action) => {
-      state.songs = action.payload[0];
-      state.songsTotal = action.payload[1];
+      state.loading = false;
+      state.songs = action.payload.songs;
+      state.songsTotal = action.payload.total;
+      state.songsOffset = 0;
+    });
+    builder.addCase(fetchSongs.rejected, (state) => {
       state.loading = false;
     });
+
+    // Fetch more songs
     builder.addCase(fetchMoreSongs.fulfilled, (state, action) => {
-      state.songs = [...state.songs, ...action.payload];
+      state.songs = [...state.songs, ...action.payload.songs];
+      state.songsOffset = action.payload.offset;
+    });
+
+    // Fetch artists
+    builder.addCase(fetchArtists.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(fetchArtists.fulfilled, (state, action) => {
+      state.loading = false;
+      state.artists = action.payload.artists;
+      state.artistsTotal = action.payload.total;
+      state.artistsOffset = 0;
+    });
+    builder.addCase(fetchArtists.rejected, (state) => {
+      state.loading = false;
+    });
+
+    // Fetch albums
+    builder.addCase(fetchAlbums.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(fetchAlbums.fulfilled, (state, action) => {
+      state.loading = false;
+      state.albums = action.payload.albums;
+      state.albumsTotal = action.payload.total;
+      state.albumsOffset = 0;
+    });
+    builder.addCase(fetchAlbums.rejected, (state) => {
+      state.loading = false;
+    });
+
+    // Fetch playlists
+    builder.addCase(fetchPlaylists.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(fetchPlaylists.fulfilled, (state, action) => {
+      state.loading = false;
+      state.playlists = action.payload.playlists;
+      state.playlistsTotal = action.payload.total;
+      state.playlistsOffset = 0;
+    });
+    builder.addCase(fetchPlaylists.rejected, (state) => {
       state.loading = false;
     });
   },
 });
 
 export const searchActions = {
+  ...searchSlice.actions,
   fetchSearch,
+  fetchSongs,
+  fetchMoreSongs,
   fetchArtists,
   fetchAlbums,
   fetchPlaylists,
-  fetchMoreSongs,
-  fetchSongs,
-  ...searchSlice.actions,
 };
 
 export default searchSlice.reducer;

@@ -22,7 +22,7 @@ export const SearchAlbumsPage: FC<SearchPageProps> = memo((props) => {
   const albums = useAppSelector((state) => state.search.albums);
 
   useEffect(() => {
-    dispatch(searchActions.setSection('ALBUMS'));
+    dispatch(searchActions.setSection({ section: 'ALBUMS' }));
   }, [dispatch]);
 
   useEffect(() => {

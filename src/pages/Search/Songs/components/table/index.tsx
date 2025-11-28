@@ -1,14 +1,13 @@
-// Components
 import SongView from './Song';
 import { Divider } from 'antd';
 import { SearchSearchTableHeader } from './header';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 // Redux
 import { useAppDispatch, useAppSelector } from '../../../../../store/store';
 
 // Interfaces
 import { memo } from 'react';
-import InfiniteScroll from 'react-infinite-scroll-component';
 import { searchActions } from '../../../../../store/slices/search';
 
 export const SearchTracksTable = memo((props: { query: string }) => {
@@ -37,7 +36,7 @@ export const SearchTracksTable = memo((props: { query: string }) => {
             scrollThreshold={0.4}
             dataLength={tracks.length}
             next={() => {
-              dispatch(searchActions.fetchMoreSongs(props.query));
+              dispatch(searchActions.fetchMoreSongs({ query: props.query, offset: tracks.length }));
             }}
           >
             <div>

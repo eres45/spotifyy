@@ -1,7 +1,7 @@
 import { FC, memo, useEffect } from 'react';
 
-import SearchArtistsPageContainer from './container';
 import NoSearchResults from '../NoResults';
+import SearchArtistsPageContainer from './container';
 
 // Utils
 import { useParams } from 'react-router-dom';
@@ -22,7 +22,7 @@ export const SearchArtistsPage: FC<SearchPageProps> = memo((props) => {
   const artists = useAppSelector((state) => state.search.artists);
 
   useEffect(() => {
-    dispatch(searchActions.setSection('ARTISTS'));
+    dispatch(searchActions.setSection({ section: 'ARTISTS' }));
   }, [dispatch]);
 
   useEffect(() => {

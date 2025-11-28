@@ -119,10 +119,10 @@ const Title = (props: ComponentProps) => {
             </div>
 
             {isList ? (
-              <p className='text-left artist mobile-hidden'>
+              <div className='text-left artist mobile-hidden'>
                 {song.explicit ? <span className='explicit'>E</span> : null}
                 {getArtists(song.artists)}
-              </p>
+              </div>
             ) : null}
           </div>
         </div>
@@ -159,10 +159,10 @@ const TitleWithCover = (props: ComponentProps) => {
             </div>
 
             {isList ? (
-              <p className='text-left artist mobile-hidden'>
+              <div className='text-left artist mobile-hidden'>
                 {song.explicit ? <span className='explicit'>E</span> : null}
                 <div>{getArtists(song.artists)}</div>
-              </p>
+              </div>
             ) : null}
           </div>
         </div>
@@ -174,9 +174,9 @@ const TitleWithCover = (props: ComponentProps) => {
 const Artists = ({ song, isList }: ComponentProps) => {
   if (isList) return null;
   return (
-    <p className='text-left tablet-hidden' style={{ flex: 5 }}>
+    <div className='text-left tablet-hidden' style={{ flex: 5 }}>
       {getArtists(song.artists)}
-    </p>
+    </div>
   );
 };
 
@@ -190,19 +190,23 @@ const Album = ({ song }: ComponentProps) => {
       if (e) e.stopPropagation();
       if (e) e.preventDefault();
       if (!user) {
-        return dispatch(uiActions.openLoginModal(song.album.images[0].url));
+        return dispatch(uiActions.openLoginModal(song.album?.images?.[0]?.url));
       }
-      navigate(`/album/${song.album.id}`);
+      if (song.album?.id) {
+        navigate(`/album/${song.album.id}`);
+      }
     },
-    [user, navigate, song.album.id, song.album.images, dispatch]
+    [user, navigate, song.album?.id, song.album?.images, dispatch]
   );
 
+  if (!song?.album) return null;
+
   return (
-    <p className='text-left tablet-hidden' style={{ flex: 5 }}>
+    <div className='text-left tablet-hidden' style={{ flex: 5 }}>
       <Link to={`/album/${song.album.id}`} onClick={onNavigate}>
         {song.album.name}
       </Link>
-    </p>
+    </div>
   );
 };
 
@@ -210,9 +214,9 @@ const AddedAt = ({ addedAt }: ComponentProps) => {
   const language = useAppSelector((state) => state.language.language);
   if (!addedAt) return null;
   return (
-    <p className='text-left tablet-hidden' style={{ flex: 3 }}>
+    <div className='text-left tablet-hidden' style={{ flex: 3 }}>
       <ReactTimeAgo date={new Date(addedAt)} locale={language === 'es' ? 'es-AR' : undefined} />
-    </p>
+    </div>
   );
 };
 
@@ -224,10 +228,10 @@ const AddToLiked = ({
   onLikeRefresh: (id: string) => void;
 }) => {
   const dispatch = useAppDispatch();
-  const currentSong = useAppSelector((state) => state.spotify.state?.track_window.current_track.id);
+  const currentSong = useAppSelector((state) => state.spotify.state?.track_window?.current_track?.id);
 
   return (
-    <p
+    <div
       className='text-right tablet-hidden'
       style={{ flex: 1, display: 'flex', justifyContent: 'end' }}
     >
@@ -240,14 +244,14 @@ const AddToLiked = ({
           if (currentSong === song.id) dispatch(spotifyActions.setLiked({ liked: !saved }));
         }}
       />
-    </p>
+    </div>
   );
 };
 
 const Actions = ({ song }: ComponentProps) => {
   const [t] = useTranslation(['order']);
   return (
-    <p
+    <div
       className='text-right actions tablet-hidden'
       style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
     >
@@ -260,15 +264,15 @@ const Actions = ({ song }: ComponentProps) => {
           </Tooltip>
         </div>
       </TrackActionsWrapper>
-    </p>
+    </div>
   );
 };
 
 const Time = ({ song }: ComponentProps) => {
   return (
-    <p className='text-right ' style={{ flex: 1, display: 'flex', justifyContent: 'end' }}>
+    <div className='text-right ' style={{ flex: 1, display: 'flex', justifyContent: 'end' }}>
       {msToTime(song.duration_ms)}
-    </p>
+    </div>
   );
 };
 
@@ -320,7 +324,7 @@ export const SongView = (props: SongViewProps) => {
 
   const onClick = useCallback(() => {
     if (!user) {
-      return dispatch(uiActions.openLoginModal(song.album.images[0].url));
+      return dispatch(uiActions.openLoginModal(song.album?.images?.[0]?.url));
     }
     if (isCurrent && isPlaying) {
       return playerService.pausePlayback();
@@ -343,12 +347,13 @@ export const SongView = (props: SongViewProps) => {
       saved={props.onToggleLike ? props.saved : undefined}
       onSavedToggle={props.onToggleLike ? props.onToggleLike : undefined}
     >
-      <button
+      <div
         onClick={isMobile ? onClick : undefined}
         onDoubleClick={!isMobile ? onClick : undefined}
-        className={`flex flex-col w-full hover:bg-spotify-gray-lightest items-center ${
-          size === 'normal' ? 'p-2' : ''
-        } rounded-lg ${props.activable ? 'activable-song' : ''}`}
+        className={`flex flex-col w-full hover:bg-spotify-gray-lightest items-center ${size === 'normal' ? 'p-2' : ''
+          } rounded-lg ${props.activable ? 'activable-song' : ''}`}
+        role="button"
+        tabIndex={0}
       >
         <div className='song-details flex flex-row items-center w-full'>
           <div className='flex flex-row items-center justify-between w-full'>
@@ -367,7 +372,7 @@ export const SongView = (props: SongViewProps) => {
             ))}
           </div>
         </div>
-      </button>
+      </div>
     </TrackActionsWrapper>
   );
 };
