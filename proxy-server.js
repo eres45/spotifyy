@@ -38,21 +38,48 @@ app.get('/health', (req, res) => {
 app.get('/proxy', async (req, res) => {
   const { url } = req.query;
 
+  console.log('[PROXY] /proxy endpoint hit');
+  console.log('[PROXY] URL param length:', url ? url.length : 0);
+
   if (!url) {
+    console.log('[PROXY] ERROR: Missing url parameter');
     return res.status(400).send('Missing url parameter');
   }
 
   try {
+    console.log('[PROXY] Fetching audio from:', url.substring(0, 100) + '...');
+
     const response = await axios({
       method: 'GET',
       url: decodeURIComponent(url),
       responseType: 'stream',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://www.youtube.com/', // Trick Google servers
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity',
+        'Origin': 'https://www.youtube.com',
+        'Referer': 'https://www.youtube.com/',
+        'Sec-Fetch-Dest': 'audio',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site',
+        'Range': req.headers.range || 'bytes=0-',
       },
       validateStatus: (status) => status < 500,
     });
+
+    console.log('[PROXY] Response status:', response.status);
+    console.log('[PROXY] Content-Type:', response.headers['content-type']);
+
+    if (response.status === 403) {
+      console.error('[PROXY] 403 Forbidden - Google is blocking the request');
+      return res.status(403).send('Audio source blocked by provider');
+    }
+
+    // Set CORS headers explicitly
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
 
     // Forward headers
     if (response.headers['content-type']) {
@@ -61,13 +88,24 @@ app.get('/proxy', async (req, res) => {
     if (response.headers['content-length']) {
       res.setHeader('Content-Length', response.headers['content-length']);
     }
+    if (response.headers['accept-ranges']) {
+      res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+    }
+    if (response.headers['content-range']) {
+      res.setHeader('Content-Range', response.headers['content-range']);
+    }
+
+    // Set response status
+    res.status(response.status);
 
     // Pipe the stream
     response.data.pipe(res);
 
+    console.log('[PROXY] Streaming audio...');
+
   } catch (error) {
-    console.error(`Proxy error for ${url}:`, error.message);
-    res.status(500).send('Proxy error');
+    console.error(`[PROXY] Error:`, error.message);
+    res.status(500).send('Proxy error: ' + error.message);
   }
 });
 
